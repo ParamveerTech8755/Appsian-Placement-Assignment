@@ -111,4 +111,5 @@ app.MapDelete("/api/tasks/{id}", (int id) =>
 .WithName("DeleteTask")
 .WithOpenApi();
 
-app.Run();
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Run($"http://0.0.0.0:{port}");
