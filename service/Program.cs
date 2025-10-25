@@ -12,7 +12,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.AllowAnyOrigin()
+            policy.WithOrigins(
+                "https://appsian-placement-assignment.vercel.app",
+                "https://appsian-placement-assignment-h9zgwb6ew.vercel.app",
+                "https://appsian-placement-assign-git-60ff16-paramveertech8755s-projects.vercel.app",
+                "http://localhost:5173"
+            )
                   .AllowAnyMethod()
                   .AllowAnyHeader();
         });
