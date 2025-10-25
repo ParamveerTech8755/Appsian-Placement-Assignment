@@ -1,6 +1,6 @@
 import type { Task, CreateTaskDto, UpdateTaskDto } from "../types/task.types";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = "https://appsian-placement-assignment.onrender.com/api";
 
 export const taskService = {
   async getAllTasks(): Promise<Task[]> {
