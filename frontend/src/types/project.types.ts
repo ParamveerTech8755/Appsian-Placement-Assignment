@@ -12,59 +12,47 @@ export interface Project {
   tasks: ProjectTask[];
 }
 
+export interface CreateProjectDto {
+  title: string;
+  description?: string;
+}
 export interface ProjectTask {
   id: number;
   title: string;
-  dueDate?: string;
+  dueDate: string; // Required, not optional
+  estimatedHours: number; // NEW: Required
   isCompleted: boolean;
   createdAt: string;
   projectId: number;
 }
 
-export interface CreateProjectDto {
-  title: string;
-  description?: string;
-}
-
 export interface CreateProjectTaskDto {
   title: string;
-  dueDate?: string;
+  dueDate: string; // Required
+  estimatedHours: number; // NEW: Required
 }
 
 export interface UpdateProjectTaskDto {
   title: string;
-  dueDate?: string;
+  dueDate: string; // Required
+  estimatedHours: number; // NEW: Required
   isCompleted: boolean;
 }
 
-export interface LoginDto {
-  email: string;
-  password: string;
-}
-
-export interface RegisterDto {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  userId: number;
-  email: string;
-}
-
 export interface ScheduleRequest {
-  availableHoursPerDay: number;
-  startDate: string;
+  startDate: string; // Removed availableHoursPerDay
 }
 
 export interface ScheduledTask {
   taskId: number;
   taskTitle: string;
   scheduledDate: string;
+  dueDate: string; // NEW
   estimatedHours: number;
 }
 
 export interface ScheduleResponse {
   schedule: ScheduledTask[];
+  totalHours: number; // NEW
+  totalDays: number; // NEW
 }

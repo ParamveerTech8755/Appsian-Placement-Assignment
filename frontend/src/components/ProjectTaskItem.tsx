@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, Check, Calendar } from "lucide-react";
+import { Trash2, Check, Calendar, Clock } from "lucide-react";
 import type { ProjectTask } from "../types/project.types";
 
 interface ProjectTaskItemProps {
@@ -13,15 +13,14 @@ export const ProjectTaskItem: React.FC<ProjectTaskItemProps> = ({
   onToggle,
   onDelete,
 }) => {
-  const isOverdue =
-    task.dueDate && new Date(task.dueDate) < new Date() && !task.isCompleted;
+  const isOverdue = !task.isCompleted && new Date(task.dueDate) < new Date();
 
   return (
     <div
-      className={`flex items-center gap-3 p-4 rounded-lg transition-colors group ${
+      className={`flex items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors ${
         isOverdue
-          ? "bg-red-50 hover:bg-red-100"
-          : "bg-gray-50 hover:bg-gray-100"
+          ? "bg-red-50 border border-red-200"
+          : "bg-white border border-gray-200"
       }`}
     >
       <button
@@ -37,28 +36,36 @@ export const ProjectTaskItem: React.FC<ProjectTaskItemProps> = ({
 
       <div className="flex-1">
         <span
-          className={`block ${
-            task.isCompleted ? "line-through text-gray-400" : "text-gray-700"
+          className={`block font-medium ${
+            task.isCompleted
+              ? "line-through text-gray-400"
+              : isOverdue
+                ? "text-red-700"
+                : "text-gray-700"
           }`}
         >
           {task.title}
         </span>
-        {task.dueDate && (
-          <span
-            className={`text-xs flex items-center gap-1 mt-1 ${
-              isOverdue ? "text-red-600 font-medium" : "text-gray-500"
+        <div className="flex items-center gap-4 mt-1">
+          <div
+            className={`flex items-center space-x-1 text-xs ${
+              isOverdue ? "text-red-600 font-semibold" : "text-gray-500"
             }`}
           >
             <Calendar size={12} />
-            Due: {new Date(task.dueDate).toLocaleDateString()}
-            {isOverdue && " (Overdue)"}
-          </span>
-        )}
+            <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+            {isOverdue && <span>(Overdue!)</span>}
+          </div>
+          <div className="flex items-center space-x-1 text-xs text-blue-600">
+            <Clock size={12} />
+            <span>{task.estimatedHours}h</span>
+          </div>
+        </div>
       </div>
 
       <button
         onClick={() => onDelete(task.id)}
-        className="flex-shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+        className="flex-shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
       >
         <Trash2 size={18} />
       </button>

@@ -5,7 +5,6 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
-import { SimpleTasks } from "./pages/SimpleTasks";
 import { authUtils } from "./utils/auth.utils";
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({
@@ -41,7 +40,6 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="/simple-tasks" element={<SimpleTasks />} />
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </div>

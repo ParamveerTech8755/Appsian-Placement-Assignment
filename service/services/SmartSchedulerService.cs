@@ -6,71 +6,46 @@ namespace TaskManagerAPI.Services
     {
         public ScheduleResponseDto GenerateSchedule(
             List<ProjectTask> tasks,
-            int availableHoursPerDay,
             DateTime startDate)
         {
             var schedule = new List<ScheduledTaskDto>();
             var currentDate = startDate;
-            var remainingHoursToday = availableHoursPerDay;
 
-            // Sort tasks by due date (earliest first), then by priority
-            var sortedTasks = tasks
+            // Filter incomplete tasks only
+            var incompleteTasks = tasks
                 .Where(t => !t.IsCompleted)
-                .OrderBy(t => t.DueDate ?? DateTime.MaxValue)
-                .ThenBy(t => t.CreatedAt)
+                .ToList();
+
+            // Sort by: 1) Earliest due date, 2) Shortest duration (tie breaker)
+            var sortedTasks = incompleteTasks
+                .OrderBy(t => t.DueDate)
+                .ThenBy(t => t.EstimatedHours)
                 .ToList();
 
             foreach (var task in sortedTasks)
             {
-                // Estimate hours based on task complexity (simple heuristic)
-                var estimatedHours = EstimateTaskHours(task);
-
-                // If task doesn't fit today, move to next day
-                if (estimatedHours > remainingHoursToday)
-                {
-                    currentDate = currentDate.AddDays(1);
-                    remainingHoursToday = availableHoursPerDay;
-                }
-
-                // Schedule the task
                 schedule.Add(new ScheduledTaskDto
                 {
                     TaskId = task.Id,
                     TaskTitle = task.Title,
                     ScheduledDate = currentDate,
-                    EstimatedHours = estimatedHours
+                    DueDate = task.DueDate,
+                    EstimatedHours = task.EstimatedHours
                 });
 
-                // Update remaining hours
-                remainingHoursToday -= estimatedHours;
-
-                // If no hours left today, move to next day
-                if (remainingHoursToday <= 0)
-                {
-                    currentDate = currentDate.AddDays(1);
-                    remainingHoursToday = availableHoursPerDay;
-                }
+                // Move to next day after each task
+                currentDate = currentDate.AddDays(1);
             }
 
-            return new ScheduleResponseDto { Schedule = schedule };
-        }
+            var totalHours = sortedTasks.Sum(t => t.EstimatedHours);
+            var totalDays = schedule.Count;
 
-        private int EstimateTaskHours(ProjectTask task)
-        {
-            // Simple estimation based on title length and due date urgency
-            var baseHours = 2;
-
-            // Longer titles might indicate more complex tasks
-            if (task.Title.Length > 50) baseHours += 1;
-
-            // Tasks with near due dates might need more focus
-            if (task.DueDate.HasValue)
+            return new ScheduleResponseDto
             {
-                var daysUntilDue = (task.DueDate.Value - DateTime.Now).Days;
-                if (daysUntilDue <= 3) baseHours += 1;
-            }
-
-            return Math.Min(baseHours, 8); // Cap at 8 hours
+                Schedule = schedule,
+                TotalHours = totalHours,
+                TotalDays = totalDays
+            };
         }
     }
 }

@@ -67,64 +67,6 @@ app.UseAuthorization();
 
 // In-memory storage for Assignment 1 (keep for backward compatibility)
 var tasks = new List<TaskItem>();
-var nextId = 1;
-
-// ===== ASSIGNMENT 1 ENDPOINTS (UNCHANGED) =====
-
-app.MapGet("/api/tasks", () => Results.Ok(tasks))
-    .WithName("GetTasks")
-    .WithOpenApi();
-
-app.MapGet("/api/tasks/{id}", (int id) =>
-{
-    var task = tasks.FirstOrDefault(t => t.Id == id);
-    return task is not null ? Results.Ok(task) : Results.NotFound();
-})
-.WithName("GetTaskById")
-.WithOpenApi();
-
-app.MapPost("/api/tasks", (CreateTaskDto dto) =>
-{
-    if (string.IsNullOrWhiteSpace(dto.Description))
-        return Results.BadRequest("Description is required");
-
-    var newTask = new TaskItem
-    {
-        Id = nextId++,
-        Description = dto.Description,
-        IsCompleted = false,
-        CreatedAt = DateTime.Now
-    };
-
-    tasks.Add(newTask);
-    return Results.Created($"/api/tasks/{newTask.Id}", newTask);
-})
-.WithName("CreateTask")
-.WithOpenApi();
-
-app.MapPut("/api/tasks/{id}", (int id, UpdateTaskDto dto) =>
-{
-    var task = tasks.FirstOrDefault(t => t.Id == id);
-    if (task is null) return Results.NotFound();
-    if (string.IsNullOrWhiteSpace(dto.Description))
-        return Results.BadRequest("Description is required");
-
-    task.Description = dto.Description;
-    task.IsCompleted = dto.IsCompleted;
-    return Results.Ok(task);
-})
-.WithName("UpdateTask")
-.WithOpenApi();
-
-app.MapDelete("/api/tasks/{id}", (int id) =>
-{
-    var task = tasks.FirstOrDefault(t => t.Id == id);
-    if (task is null) return Results.NotFound();
-    tasks.Remove(task);
-    return Results.NoContent();
-})
-.WithName("DeleteTask")
-.WithOpenApi();
 
 // ===== ASSIGNMENT 2: AUTHENTICATION ENDPOINTS =====
 
@@ -233,37 +175,25 @@ app.MapGet("/api/projects/{projectId}/tasks", async (int projectId, AppDbContext
 
     if (project is null) return Results.NotFound();
 
-    var tasks = await db.ProjectTasks.Where(t => t.ProjectId == projectId).ToListAsync();
+    var tasks = await db.ProjectTasks
+        .Where(t => t.ProjectId == projectId)
+        .Select(t => new ProjectTaskResponseDto
+        {
+            Id = t.Id,
+            Title = t.Title,
+            DueDate = t.DueDate,
+            EstimatedHours = t.EstimatedHours,
+            IsCompleted = t.IsCompleted,
+            CreatedAt = t.CreatedAt,
+            ProjectId = t.ProjectId
+        })
+        .ToListAsync();
     return Results.Ok(tasks);
 })
 .RequireAuthorization()
 .WithName("GetProjectTasks")
 .WithOpenApi();
 
-app.MapPost("/api/projects/{projectId}/tasks", async (int projectId, CreateProjectTaskDto dto, AppDbContext db, ClaimsPrincipal user) =>
-{
-    var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-    var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
-
-    if (project is null) return Results.NotFound();
-
-    var task = new ProjectTask
-    {
-        Title = dto.Title,
-        DueDate = dto.DueDate,
-        IsCompleted = false,
-        ProjectId = projectId,
-        CreatedAt = DateTime.Now
-    };
-
-    db.ProjectTasks.Add(task);
-    await db.SaveChangesAsync();
-
-    return Results.Created($"/api/projects/{projectId}/tasks/{task.Id}", task);
-})
-.RequireAuthorization()
-.WithName("CreateProjectTask")
-.WithOpenApi();
 
 app.MapPut("/api/tasks/{id}", async (int id, UpdateProjectTaskDto dto, AppDbContext db, ClaimsPrincipal user) =>
 {
@@ -276,10 +206,23 @@ app.MapPut("/api/tasks/{id}", async (int id, UpdateProjectTaskDto dto, AppDbCont
 
     task.Title = dto.Title;
     task.DueDate = dto.DueDate;
+    task.EstimatedHours = dto.EstimatedHours;  // NEW
     task.IsCompleted = dto.IsCompleted;
 
     await db.SaveChangesAsync();
-    return Results.Ok(task);
+
+    var responseDto = new ProjectTaskResponseDto
+    {
+        Id = task.Id,
+        Title = task.Title,
+        DueDate = task.DueDate,
+        EstimatedHours = task.EstimatedHours,  // NEW
+        IsCompleted = task.IsCompleted,
+        CreatedAt = task.CreatedAt,
+        ProjectId = task.ProjectId
+    };
+
+    return Results.Ok(responseDto);
 })
 .RequireAuthorization()
 .WithName("UpdateProjectTask")
@@ -302,9 +245,47 @@ app.MapDelete("/api/tasks/{id}", async (int id, AppDbContext db, ClaimsPrincipal
 .WithName("DeleteProjectTask")
 .WithOpenApi();
 
-// ===== ASSIGNMENT 3: SMART SCHEDULER =====
 
-app.MapPost("/api/v1/projects/{projectId}/schedule", async (
+app.MapPost("/api/projects/{projectId}/tasks", async (int projectId, CreateProjectTaskDto dto, AppDbContext db, ClaimsPrincipal user) =>
+{
+    var userId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+    var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
+
+    if (project is null) return Results.NotFound();
+
+    var task = new ProjectTask
+    {
+        Title = dto.Title,
+        DueDate = dto.DueDate,
+        EstimatedHours = dto.EstimatedHours,
+        IsCompleted = false,
+        ProjectId = projectId,
+        CreatedAt = DateTime.Now
+    };
+
+    db.ProjectTasks.Add(task);
+    await db.SaveChangesAsync();
+
+    var responseDto = new ProjectTaskResponseDto
+    {
+        Id = task.Id,
+        Title = task.Title,
+        DueDate = task.DueDate,
+        EstimatedHours = task.EstimatedHours,
+        IsCompleted = task.IsCompleted,
+        CreatedAt = task.CreatedAt,
+        ProjectId = task.ProjectId
+    };
+
+    return Results.Created($"/api/projects/{projectId}/tasks/{task.Id}", responseDto);
+})
+.RequireAuthorization()
+.WithName("CreateProjectTask")
+.WithOpenApi();
+
+
+// ===== ASSIGNMENT 3: SMART SCHEDULER =====
+app.MapPost("/api/projects/{projectId}/schedule", async (
     int projectId,
     ScheduleRequestDto dto,
     AppDbContext db,
@@ -318,17 +299,13 @@ app.MapPost("/api/v1/projects/{projectId}/schedule", async (
 
     if (project is null) return Results.NotFound();
 
-    var schedule = scheduler.GenerateSchedule(
-        project.Tasks,
-        dto.AvailableHoursPerDay,
-        dto.StartDate);
+    var schedule = scheduler.GenerateSchedule(project.Tasks, dto.StartDate);
 
     return Results.Ok(schedule);
 })
 .RequireAuthorization()
 .WithName("SmartScheduler")
 .WithOpenApi();
-
 // Run the app
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Run($"http://0.0.0.0:{port}");

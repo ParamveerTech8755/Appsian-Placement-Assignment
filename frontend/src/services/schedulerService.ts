@@ -9,7 +9,7 @@ export const schedulerService = {
     request: ScheduleRequest,
   ): Promise<ScheduleResponse> {
     const response = await fetch(
-      `${API_BASE_URL}/v1/projects/${projectId}/schedule`,
+      `${API_BASE_URL}/projects/${projectId}/schedule`,
       {
         method: "POST",
         headers: authUtils.getAuthHeaders(),
@@ -17,7 +17,10 @@ export const schedulerService = {
       },
     );
 
-    if (!response.ok) throw new Error("Failed to generate schedule");
+    if (!response.ok) {
+      throw new Error("Failed to generate schedule");
+    }
+
     return response.json();
   },
 };

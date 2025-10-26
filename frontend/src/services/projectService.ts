@@ -64,7 +64,10 @@ export const projectService = {
       },
     );
 
-    if (!response.ok) throw new Error("Failed to create task");
+    if (!response.ok) {
+      throw new Error("Failed to create task");
+    }
+
     return response.json();
   },
 

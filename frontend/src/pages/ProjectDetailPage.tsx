@@ -19,7 +19,7 @@ export const ProjectDetailPage: React.FC = () => {
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
-  const [hoursPerDay, setHoursPerDay] = useState(4);
+  const [newTaskHours, setNewTaskHours] = useState(4);
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -43,16 +43,21 @@ export const ProjectDetailPage: React.FC = () => {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
+    if (!newTaskTitle.trim() || !newTaskDueDate) {
+      setError("Title and due date are required");
+      return;
+    }
 
     try {
       const newTask = await projectService.createTask(parseInt(projectId!), {
         title: newTaskTitle,
-        dueDate: newTaskDueDate || undefined,
+        dueDate: newTaskDueDate,
+        estimatedHours: newTaskHours,
       });
       setTasks([...tasks, newTask]);
       setNewTaskTitle("");
       setNewTaskDueDate("");
+      setNewTaskHours(4);
     } catch (err: any) {
       setError(err.message);
     }
@@ -63,6 +68,7 @@ export const ProjectDetailPage: React.FC = () => {
       const updated = await projectService.updateTask(task.id, {
         title: task.title,
         dueDate: task.dueDate,
+        estimatedHours: task.estimatedHours,
         isCompleted: !task.isCompleted,
       });
       setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
@@ -84,10 +90,7 @@ export const ProjectDetailPage: React.FC = () => {
     try {
       const result = await schedulerService.generateSchedule(
         parseInt(projectId!),
-        {
-          availableHoursPerDay: hoursPerDay,
-          startDate: startDate,
-        },
+        { startDate },
       );
       setSchedule(result);
       setShowScheduler(true);
@@ -97,6 +100,7 @@ export const ProjectDetailPage: React.FC = () => {
   };
 
   const completedTasks = tasks.filter((t) => t.isCompleted).length;
+  const totalHours = tasks.reduce((sum, t) => sum + t.estimatedHours, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -112,16 +116,21 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="bg-white rounded-xl shadow-md p-8 mb-6">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
                 Project Tasks
               </h1>
-              <p className="text-gray-500 mt-2">
-                {completedTasks} of {tasks.length} tasks completed
-              </p>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <span>
+                  {completedTasks} of {tasks.length} tasks completed
+                </span>
+                <span>•</span>
+                <span>{totalHours} total hours</span>
+              </div>
             </div>
             <button
               onClick={() => setShowScheduler(!showScheduler)}
-              className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+              disabled={tasks.length === 0}
+              className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors"
             >
               <CalendarIcon size={18} />
               <span>Smart Schedule</span>
@@ -130,24 +139,41 @@ export const ProjectDetailPage: React.FC = () => {
 
           {error && <ErrorMessage message={error} />}
 
-          <form onSubmit={handleCreateTask} className="mb-6">
-            <div className="flex gap-2 flex-wrap">
+          <form
+            onSubmit={handleCreateTask}
+            className="mb-6 bg-gray-50 p-4 rounded-lg"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <input
                 type="text"
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
-                placeholder="Task title"
-                className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Task title *"
+                required
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="date"
                 value={newTaskDueDate}
                 onChange={(e) => setNewTaskDueDate(e.target.value)}
+                required
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  value={newTaskHours}
+                  onChange={(e) => setNewTaskHours(parseInt(e.target.value))}
+                  min={1}
+                  max={100}
+                  required
+                  className="w-20 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600">hours</span>
+              </div>
               <button
                 type="submit"
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
               >
                 <Plus size={18} />
                 <span>Add Task</span>
@@ -156,25 +182,12 @@ export const ProjectDetailPage: React.FC = () => {
           </form>
 
           {showScheduler && (
-            <div className="bg-purple-50 rounded-lg p-6 mb-6">
+            <div className="bg-purple-50 rounded-lg p-6 mb-6 border border-purple-200">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Generate Smart Schedule
+                Smart Schedule - Earliest Deadline First
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hours per day
-                  </label>
-                  <input
-                    type="number"
-                    value={hoursPerDay}
-                    onChange={(e) => setHoursPerDay(parseInt(e.target.value))}
-                    min={1}
-                    max={12}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Start date
                   </label>
@@ -188,14 +201,20 @@ export const ProjectDetailPage: React.FC = () => {
                 <div className="flex items-end">
                   <button
                     onClick={handleGenerateSchedule}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition-colors"
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-2 rounded-lg transition-colors font-medium"
                   >
-                    Generate
+                    Generate Schedule
                   </button>
                 </div>
               </div>
 
-              {schedule && <ScheduleView schedule={schedule.schedule} />}
+              {schedule && (
+                <ScheduleView
+                  schedule={schedule.schedule}
+                  totalHours={schedule.totalHours}
+                  totalDays={schedule.totalDays}
+                />
+              )}
             </div>
           )}
 

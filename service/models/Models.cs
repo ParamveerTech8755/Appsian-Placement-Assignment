@@ -34,7 +34,6 @@ namespace TaskManagerAPI.Models
         public List<ProjectTask> Tasks { get; set; } = new();
     }
 
-    // NEW: ProjectTask model (different from simple TaskItem)
     public class ProjectTask
     {
         public int Id { get; set; }
@@ -42,7 +41,13 @@ namespace TaskManagerAPI.Models
         [Required]
         public string Title { get; set; } = string.Empty;
 
-        public DateTime? DueDate { get; set; }
+        [Required]
+        public DateTime DueDate { get; set; }
+
+        [Required]
+        [Range(1, 50)]
+        public int EstimatedHours { get; set; }
+
         public bool IsCompleted { get; set; }
         public DateTime CreatedAt { get; set; }
 
@@ -85,21 +90,45 @@ namespace TaskManagerAPI.Models
     {
         [Required]
         public string Title { get; set; } = string.Empty;
-        public DateTime? DueDate { get; set; }
+
+        [Required]
+        public DateTime DueDate { get; set; }  // Required
+
+        [Required]
+        [Range(1, 50)]
+        public int EstimatedHours { get; set; }  // NEW: Required
     }
 
     public class UpdateProjectTaskDto
     {
         [Required]
         public string Title { get; set; } = string.Empty;
-        public DateTime? DueDate { get; set; }
+
+        [Required]
+        public DateTime DueDate { get; set; }  // Required
+
+        [Required]
+        [Range(1, 50)]
+        public int EstimatedHours { get; set; }  // NEW: Required
+
         public bool IsCompleted { get; set; }
+    }
+
+    public class ProjectTaskResponseDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public DateTime DueDate { get; set; }  // Not nullable
+        public int EstimatedHours { get; set; }  // NEW
+        public bool IsCompleted { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int ProjectId { get; set; }
     }
 
     // Smart Scheduler DTOs
     public class ScheduleRequestDto
     {
-        public int AvailableHoursPerDay { get; set; }
+        [Required]
         public DateTime StartDate { get; set; }
     }
 
@@ -108,11 +137,14 @@ namespace TaskManagerAPI.Models
         public int TaskId { get; set; }
         public string TaskTitle { get; set; } = string.Empty;
         public DateTime ScheduledDate { get; set; }
+        public DateTime DueDate { get; set; }
         public int EstimatedHours { get; set; }
     }
 
     public class ScheduleResponseDto
     {
         public List<ScheduledTaskDto> Schedule { get; set; } = new();
+        public int TotalHours { get; set; }
+        public int TotalDays { get; set; }
     }
 }
