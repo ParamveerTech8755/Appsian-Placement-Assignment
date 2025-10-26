@@ -1,63 +1,51 @@
 import React from "react";
-import { useTasks } from "./hooks/useTasks";
-import { TaskForm } from "./components/TaskForm";
-import { FilterButtons } from "./components/FilterButtons";
-import { TaskList } from "./components/TaskList";
-import { ErrorMessage } from "./components/ErrorMessage";
-import { LoadingSpinner } from "./components/LoadingSpinner";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Navbar } from "./components/Navbar";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { ProjectDetailPage } from "./pages/ProjectDetailPage";
+import { SimpleTasks } from "./pages/SimpleTasks";
+import { authUtils } from "./utils/auth.utils";
 
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  return authUtils.isAuthenticated() ? (
+    <>{children}</>
+  ) : (
+    <Navigate to="/login" />
+  );
+};
 function App() {
-  const {
-    tasks,
-    stats,
-    filter,
-    loading,
-    error,
-    addTask,
-    toggleTask,
-    deleteTask,
-    setFilter,
-  } = useTasks();
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              Task Manager
-            </h1>
-            <p className="text-gray-500">Stay organized and productive</p>
-          </div>
-
-          {/* Error Message */}
-          {error && <ErrorMessage message={error} />}
-
-          {/* Task Form */}
-          <TaskForm onAddTask={addTask} />
-
-          {/* Filter Buttons */}
-          <FilterButtons
-            currentFilter={filter}
-            stats={stats}
-            onFilterChange={setFilter}
+    <BrowserRouter>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <DashboardPage />
+              </PrivateRoute>
+            }
           />
-
-          {/* Task List or Loading */}
-          {loading ? (
-            <LoadingSpinner />
-          ) : (
-            <TaskList
-              tasks={tasks}
-              filter={filter}
-              onToggle={toggleTask}
-              onDelete={deleteTask}
-            />
-          )}
-        </div>
+          <Route
+            path="/projects/:projectId"
+            element={
+              <PrivateRoute>
+                <ProjectDetailPage />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/simple-tasks" element={<SimpleTasks />} />
+          <Route path="/" element={<Navigate to="/dashboard" />} />
+        </Routes>
       </div>
-    </div>
+    </BrowserRouter>
   );
 }
 
