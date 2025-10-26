@@ -56,3 +56,19 @@ export interface ScheduleResponse {
   totalHours: number; // NEW
   totalDays: number; // NEW
 }
+
+export interface LoginDto {
+  email: string;
+  password: string;
+}
+
+export interface RegisterDto {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  userId: number;
+  email: string;
+}

@@ -1,7 +1,8 @@
 import type { ScheduleRequest, ScheduleResponse } from "../types/project.types";
 import { authUtils } from "../utils/auth.utils";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL =
+  "https://appsian-placement-assignment-project.onrender.com/api";
 
 export const schedulerService = {
   async generateSchedule(

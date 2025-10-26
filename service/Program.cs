@@ -50,10 +50,18 @@ builder.Services.AddScoped<SmartSchedulerService>();
 // Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-    });
+    options.AddPolicy("AllowAll",
+            policy =>
+            {
+                policy.WithOrigins(
+                    "https://appsian-placement-assignment-7wh6.vercel.app",
+                    "https://appsian-placement-assignment-7wh6-doug3i33f.vercel.app",
+                    "https://appsian-placement-assign-git-2471a0-paramveertech8755s-projects.vercel.app",
+                    "http://localhost:5173"
+                )
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
 });
 
 var app = builder.Build();
